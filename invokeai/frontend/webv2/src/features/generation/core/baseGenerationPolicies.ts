@@ -848,9 +848,16 @@ type ComponentSourceCandidate = {
 const isFlux2DiffusersSource = (source: ComponentSourceCandidate | null | undefined): source is MainModelConfig =>
   Boolean(source && isBundledMainForBase('flux2')(source));
 
+// The [dev] loader rejects self-contained SDNQ pipelines as VAE/encoder sources; Klein accepts them.
+const isFlux2SourceForLoader = (
+  model: GenerateModelConfig,
+  source: ComponentSourceCandidate | null | undefined
+): source is MainModelConfig =>
+  isFlux2DiffusersSource(source) && (model.variant !== 'dev' || source.format === 'diffusers');
+
 const hasFlux2DiffusersVaeSource = (ctx: ComponentPolicyContext): boolean =>
   ctx.model.type !== 'external_image_generator' &&
-  (isBundledMainForBase('flux2')(ctx.model) || isFlux2DiffusersSource(ctx.settings.componentSourceModel));
+  (isBundledMainForBase('flux2')(ctx.model) || isFlux2SourceForLoader(ctx.model, ctx.settings.componentSourceModel));
 
 const hasFlux2DiffusersEncoderSource = (ctx: ComponentPolicyContext): boolean =>
   ctx.model.type !== 'external_image_generator' &&
@@ -865,7 +872,7 @@ export const getFlux2DiffusersComponentSource = (
 ): MainModelConfig | undefined => {
   const source = settings.componentSourceModel;
 
-  if (!isFlux2DiffusersSource(source)) {
+  if (!isFlux2SourceForLoader(model, source)) {
     return undefined;
   }
 
@@ -893,7 +900,7 @@ export const getAutoFlux2ComponentSourceModel = (
     return null;
   }
 
-  const diffusersModels = models.filter(isFlux2DiffusersSource);
+  const diffusersModels = models.filter((candidate) => isFlux2SourceForLoader(model, candidate));
   const variantMatch = diffusersModels.find(isFlux2DiffusersSourceForModel(model));
 
   if (!encoderModel && settings.vae) {

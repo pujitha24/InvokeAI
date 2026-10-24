@@ -21,6 +21,7 @@ import {
   coerceSchedulerForGraph,
   getComponentSectionPolicy,
   getAutoFlux2ComponentSourceModel,
+  getFlux2DiffusersComponentSource,
   getDefaultGenerateSettings,
   getDefaultReferenceImageConfig,
   getGenerateModelSelectionResult,
@@ -489,6 +490,28 @@ describe('component policies', () => {
       completeSource.key
     );
     expect(getAutoFlux2ComponentSourceModel(model, settings, [partialSource])).toBeNull();
+  });
+
+  it('never offers a self-contained SDNQ pipeline as a FLUX.2 [dev] component source', () => {
+    const model = createModel('flux2', { format: 'gguf_quantized', variant: 'dev' });
+    const sdnqSource = createModel('flux2', {
+      format: 'sdnq_quantized',
+      key: 'flux2-klein-sdnq-source',
+      submodels: { text_encoder: {}, tokenizer: {}, transformer: {}, vae: {} },
+      variant: 'klein_9b',
+    });
+    const diffusersSource = createModel('flux2', {
+      format: 'diffusers',
+      key: 'flux2-klein-diffusers-source',
+      variant: 'klein_9b',
+    });
+    const settings = createSettings(model);
+
+    expect(getAutoFlux2ComponentSourceModel(model, settings, [sdnqSource])).toBeNull();
+    expect(getAutoFlux2ComponentSourceModel(model, settings, [sdnqSource, diffusersSource])?.key).toBe(
+      diffusersSource.key
+    );
+    expect(getFlux2DiffusersComponentSource(model, { ...settings, componentSourceModel: sdnqSource })).toBeUndefined();
   });
 
   it('validates Qwen Image Qwen-VL and VAE requirements', () => {

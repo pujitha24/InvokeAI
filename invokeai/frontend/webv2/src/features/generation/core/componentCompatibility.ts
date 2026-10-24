@@ -139,8 +139,9 @@ export const isFlux2DiffusersSourceForModel = (selectedModel: GenerateModelConfi
 
     const sourceVariant = typeof model.variant === 'string' ? model.variant : null;
 
+    // The [dev] loader only accepts plain Diffusers sources, not self-contained SDNQ pipelines.
     if (selectedVariant === 'dev') {
-      return sourceVariant === 'dev';
+      return model.format === 'diffusers' && sourceVariant === 'dev';
     }
 
     if (!requiredVariant) {
