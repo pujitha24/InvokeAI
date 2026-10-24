@@ -581,7 +581,7 @@ class WanT5EncoderLoader(ModelLoader):
        what ``Wan-AI/Wan2.2-T2V-A14B::text_encoder+tokenizer`` produces.
     2. A flat ``text_encoder/`` folder with ``config.json`` declaring
        ``model_type: umt5`` directly at the root. In this case the tokenizer
-       is loaded from the same folder via ``AutoTokenizer.from_pretrained``.
+       is loaded from the same folder via ``PreTrainedTokenizerFast.from_pretrained``.
     """
 
     def _load_model(
@@ -606,7 +606,7 @@ class WanT5EncoderLoader(ModelLoader):
                 local_files_only=True,
             )
         if submodel_type == SubModelType.Tokenizer:
-            from transformers import AutoTokenizer
+            from transformers import PreTrainedTokenizerFast
 
             # Prefer a sibling tokenizer/ directory; fall back to the encoder dir
             # itself, which is normal for "flat" downloads.
@@ -615,7 +615,9 @@ class WanT5EncoderLoader(ModelLoader):
                 if nested_tokenizer.exists()
                 else (nested_text_encoder if nested_text_encoder.exists() else root)
             )
-            return AutoTokenizer.from_pretrained(str(target), local_files_only=True)
+            # Not AutoTokenizer: under transformers 5 it rebuilds a T5Tokenizer that ignores the
+            # folder's tokenizer.json and hard-codes unk_id=2, so unknown pieces become <s> instead of <unk>.
+            return PreTrainedTokenizerFast.from_pretrained(str(target), local_files_only=True)
 
         raise ValueError(
             f"Unsupported submodel type for WanT5Encoder: {submodel_type.value if submodel_type else 'None'}"
