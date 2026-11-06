@@ -618,6 +618,19 @@ const getMetadataModelTuning = (
     return referenceKvCache === null ? {} : { krea2ReferenceKvCache: referenceKvCache };
   }
 
+  if (model.base === 'wan') {
+    // Graphs record the low-noise guidance only when the switch was on, so a same-family record without it means off.
+    // The node ignores values below 1, which the control cannot show either.
+    const recorded = getNumber(metadata, 'wan_guidance_scale_low_noise');
+    const lowNoise = recordedOrDefault(
+      'wan_guidance_scale_low_noise',
+      recorded !== null && recorded >= 1 ? recorded : undefined,
+      null
+    );
+
+    return lowNoise === undefined ? {} : { wanGuidanceScaleLowNoise: lowNoise };
+  }
+
   return {};
 };
 

@@ -1734,6 +1734,27 @@ describe('model-family tuning recall', () => {
     ).toBe(false);
   });
 
+  it('restores the Wan low-noise guidance and clears it when the record lacks it', () => {
+    const wan: MainModelConfig = { base: 'wan', key: 'wan-tuning', name: 'Wan', type: 'main' };
+    const wanRecord = (extra: Record<string, unknown> = {}) => ({
+      generation_mode: 'wan_txt2img',
+      model: { base: 'wan', key: wan.key, name: wan.name, type: 'main' },
+      ...extra,
+    });
+    const restored = recall(wanRecord({ wan_guidance_scale_low_noise: 3.5 }), wan);
+
+    expect(restored?.values.wanGuidanceScaleLowNoise).toBe(3.5);
+    expect(restored?.fields).toContain('modelTuning');
+    expect(
+      recall(wanRecord(), wan, 'all', { wanGuidanceScaleLowNoise: 4 })?.values.wanGuidanceScaleLowNoise
+    ).toBeNull();
+    // Records that are not generation records say nothing about the switch.
+    expect(
+      recall({ model: { base: 'wan', key: wan.key } }, wan, 'all', { wanGuidanceScaleLowNoise: 4 })?.values
+        .wanGuidanceScaleLowNoise
+    ).toBe(4);
+  });
+
   it('restores the Qwen-Image shift and encoder quantization', () => {
     const result = recall({ qwen_image_quantization: 'nf4', qwen_image_shift: 3 }, qwenModel);
 
